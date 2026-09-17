@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#00e676">
+  <title>Darts HORSE Begleit-App</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%231e1e1e' stroke='%2300e676' stroke-width='5'/><circle cx='50' cy='50' r='30' fill='none' stroke='%23ff3d00' stroke-width='4'/><circle cx='50' cy='50' r='15' fill='none' stroke='%2300e676' stroke-width='4'/><circle cx='50' cy='50' r='5' fill='%23ff3d00'/></svg>">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Header -->
+    <header class="main-header">
+      <div class="logo">
+        <span class="dart-icon">🎯</span>
+        <h1>DARTS <span class="highlight">H-O-R-S-E</span></h1>
+      </div>
+      <nav class="nav-buttons">
+        <button id="btn-nav-game" class="btn btn-outline active">Neues Spiel</button>
+        <button id="btn-nav-history" class="btn btn-outline">Match-Historie</button>
+      </nav>
+    </header>
+
+    <!-- VIEW 1: SETUP SCREEN -->
+    <main id="view-setup" class="view-screen active-screen">
+      <div class="setup-card">
+        <h2>🎯 Spiel-Setup & Einstellungen</h2>
+
+        <!-- Active game resume prompt -->
+        <div id="resume-prompt" class="resume-banner hidden">
+          <p>Es wurde ein unvollendetes Spiel gefunden!</p>
+          <div class="resume-actions">
+            <button id="btn-resume-game" class="btn btn-primary">Laufendes Spiel fortsetzen</button>
+            <button id="btn-discard-game" class="btn btn-danger-outline">Verwerfen & Neues starten</button>
+          </div>
+        </div>
+
+        <section class="setup-section">
+          <h3>1. Spieler eintragen (2 bis X)</h3>
+          <div class="add-player-form">
+            <input type="text" id="input-player-name" placeholder="Spielername eingeben..." autocomplete="off">
+            <button id="btn-add-player" class="btn btn-primary">+ Hinzufügen</button>
+          </div>
+          <ul id="player-list-setup" class="player-setup-list">
+            <!-- Dynamic player items added here -->
+          </ul>
+
+          <div class="ausbullen-box">
+            <span>Ausbullen / Startreihenfolge:</span>
+            <button id="btn-shuffle-players" class="btn btn-secondary">🔀 Zufällig mischen</button>
+          </div>
+        </section>
+
+        <section class="setup-section">
+          <h3>2. Regel-Konfiguration</h3>
+          <div class="setting-group">
+            <label for="select-caller-penalty">Strafe für den Ansager (Caller) bei Fehlschuss:</label>
+            <select id="select-caller-penalty" class="select-input">
+              <option value="0">Keine Strafe (0 Buchstaben)</option>
+              <option value="0.5" selected>0,5 Buchstabe (Halbe Strafe)</option>
+              <option value="1">1 ganzer Buchstabe</option>
+            </select>
+          </div>
+
+          <div class="setting-group">
+            <label for="select-caller-mode">Ansager-Wechsel-Modus:</label>
+            <select id="select-caller-mode" class="select-input">
+              <option value="strict" selected>Strikter Wechsel reihum nach jeder Runde</option>
+              <option value="streak">Ansager bleibt so lange am Zug, wie er trifft</option>
+            </select>
+          </div>
+
+          <div class="setting-group">
+            <label for="input-target-word">Ziel-Wort (Standard: HORSE):</label>
+            <input type="text" id="input-target-word" value="HORSE" uppercase class="text-input" placeholder="HORSE">
+          </div>
+        </section>
+
+        <button id="btn-start-game" class="btn btn-success btn-large btn-block">🚀 Spiel Jetzt Starten</button>
+      </div>
+    </main>
+
+    <!-- VIEW 2: GAME SCREEN (Split-Screen Responsive Layout) -->
+    <main id="view-game" class="view-screen hidden">
+      <div class="split-screen-container">
+        
+        <!-- BEREICH 1: Spielstand & Statistiken (Links / Oben) -->
+        <section class="panel panel-left">
+          <div class="panel-header">
+            <h2>📊 Spielstand & Live-Stats</h2>
+            <button id="btn-abort-game" class="btn btn-danger-sm">Spiel abbrechen</button>
+          </div>
+
+          <div class="active-caller-card">
+            <span class="caller-label">Aktueller Ansager (Caller):</span>
+            <div id="active-caller-name" class="caller-name">Spieler 1</div>
+          </div>
+
+          <!-- Active Players List -->
+          <div class="players-game-container">
+            <h3>Spielerübersicht</h3>
+            <div id="game-players-list" class="game-players-list">
+              <!-- Player Cards rendered dynamically -->
+            </div>
+          </div>
+        </section>
+
+        <!-- BEREICH 2: Challenge-Auswahl & Rundenführung (Rechts / Unten) -->
+        <section class="panel panel-right">
+          <div class="panel-header">
+            <h2>🎯 Challenge Ansagen</h2>
+          </div>
+
+          <!-- Active Selected Challenge Box -->
+          <div id="selected-challenge-display" class="selected-challenge-box hidden">
+            <span class="section-subtitle">Gewählte Challenge:</span>
+            <div id="current-challenge-text" class="challenge-title-text">-</div>
+            <button id="btn-announce-challenge" class="btn btn-success btn-large btn-block">
+              📢 Challenge jetzt offiziell Ansagen
+            </button>
+          </div>
+
+          <!-- Challenge Selector Tabs / Accordions -->
+          <div class="challenge-selector">
+            <div class="tabs-header">
+              <button class="tab-btn active" data-tab="tab-numbers">Zahlen & Felder</button>
+              <button class="tab-btn" data-tab="tab-areas">Bereiche</button>
+              <button class="tab-btn" data-tab="tab-techniques">Wurftechniken</button>
+              <button class="tab-btn" data-tab="tab-custom">Eigene Challenge</button>
+            </div>
+
+            <div class="tabs-content">
+              <!-- Tab 1: Numbers -->
+              <div id="tab-numbers" class="tab-pane active">
+                <p class="tab-desc">Wähle ein spezifisches Feld auf dem Dartsboard:</p>
+                <div class="preset-grid" id="preset-grid-numbers"></div>
+              </div>
+
+              <!-- Tab 2: Areas -->
+              <div id="tab-areas" class="tab-pane">
+                <p class="tab-desc">Wähle einen Bereich des Dartsboards:</p>
+                <div class="preset-grid" id="preset-grid-areas"></div>
+              </div>
+
+              <!-- Tab 3: Techniques -->
+              <div id="tab-techniques" class="tab-pane">
+                <p class="tab-desc">Wähle eine besondere Wurftechnik:</p>
+                <div class="preset-grid" id="preset-grid-techniques"></div>
+              </div>
+
+              <!-- Tab 4: Custom -->
+              <div id="tab-custom" class="tab-pane">
+                <p class="tab-desc">Eigene/mündliche Challenge eingeben:</p>
+                <div class="custom-challenge-form">
+                  <input type="text" id="input-custom-challenge" placeholder="Z. B. Triple 19 + Double 16..." autocomplete="off">
+                  <button id="btn-use-custom-challenge" class="btn btn-primary">Auswählen</button>
+                </div>
+                <div class="quick-or-divider">oder</div>
+                <button id="btn-use-verbal-challenge" class="btn btn-secondary btn-block">
+                  💬 Mündliche / Freie Challenge am Board
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- VIEW 3: MATCH HISTORY -->
+    <main id="view-history" class="view-screen hidden">
+      <div class="history-card">
+        <h2>📜 Vergangene Matches & Statistiken</h2>
+        <div id="history-list" class="history-list">
+          <!-- Rendered dynamically -->
+        </div>
+        <button id="btn-clear-history" class="btn btn-danger-outline">Historie löschen</button>
+      </div>
+    </main>
+
+    <!-- MODAL 1: ROUND EVALUATION FLOW -->
+    <div id="modal-round-eval" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="eval-round-title">Runden auswerten</h3>
+        </div>
+        <div class="modal-body">
+          <div class="eval-challenge-info">
+            Challenge: <strong id="eval-challenge-name">Single 20</strong>
+          </div>
+
+          <!-- STEP A: Caller Result -->
+          <div id="eval-step-caller" class="eval-step">
+            <h4>Hat der Ansager (<span id="eval-caller-name">Player 1</span>) getroffen?</h4>
+            <div class="modal-actions-row">
+              <button id="btn-caller-hit" class="btn btn-success btn-large">✅ Ja, getroffen!</button>
+              <button id="btn-caller-miss" class="btn btn-danger btn-large">❌ Nein, verfehlt!</button>
+            </div>
+          </div>
+
+          <!-- STEP B: Other Players Results (shown only if Caller hit) -->
+          <div id="eval-step-others" class="eval-step hidden">
+            <h4>Welche Mitspieler haben getroffen?</h4>
+            <div id="eval-others-list" class="eval-players-list">
+              <!-- Checkboxes / Buttons per other player -->
+            </div>
+            <button id="btn-submit-round-results" class="btn btn-primary btn-large btn-block">
+              Runde Abschließen & Punkte Werten
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: GAME OVER SCREEN -->
+    <div id="modal-game-over" class="modal-overlay hidden">
+      <div class="modal-card game-over-card">
+        <div class="trophy-header">🏆</div>
+        <h2 id="winner-announcement">Spieler 1 gewinnt!</h2>
+
+        <div class="game-summary-section">
+          <h3>📊 Spiel-Auswertung</h3>
+          
+          <div id="deadliest-challenge-box" class="deadliest-box">
+            <strong>Tödlichste Challenge:</strong>
+            <div id="deadliest-challenge-text">-</div>
+          </div>
+
+          <h3>Spieldetails & Rundenhistorie</h3>
+          <div id="game-over-history-log" class="game-over-log">
+            <!-- Round history list -->
+          </div>
+        </div>
+
+        <button id="btn-restart-game" class="btn btn-success btn-large btn-block">
+          🔄 Neues Spiel starten
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
